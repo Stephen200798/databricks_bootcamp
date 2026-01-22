@@ -1,0 +1,125 @@
+%md
+#INIT
+%sql
+DROP TABLE IF EXISTS silver.crm_prd_info
+%sql
+CREATE TABLE silver.crm_prd_info (
+  Product_id INT,
+  Category_id VARCHAR(50),
+  Product_key VARCHAR(50),
+  Product_name VARCHAR(50),
+  Product_cost INT,
+  Product_line VARCHAR(50),
+  Product_start_dt DATE,
+  Product_end_dt DATE,
+  dwh_create_date TIMESTAMP
+)
+%md
+#READING FROM BRONZE
+%sql
+INSERT INTO silver.crm_prd_info (
+  Product_id,
+  Category_id,
+  Product_key,
+  Product_name,
+  Product_cost,
+  Product_line,
+  Product_start_dt,
+  Product_end_dt,
+  dwh_create_date
+)
+SELECT 
+  prd_id,
+  NULL AS cat_id,
+  prd_key,
+  prd_nm,
+  prd_cost,
+  prd_line,
+  prd_start_dt,
+  prd_end_dt,
+  current_timestamp()
+FROM bronze.crm_prd_info
+%md
+#DATA TRANSFORMATION
+%md
+#Trimming
+%sql
+SELECT 
+    prd_id,
+    REPLACE(SUBSTRING(prd_key, 1, 5), ',', '_') AS cat_id,
+    SUBSTRING(prd_key, 7, length(prd_key)) AS prd_key,
+    prd_nm,
+    COALESCE(prd_cost, 0) AS prd_cost,
+    UPPER(TRIM(prd_line)) AS prd_line,
+    CAST(prd_start_dt AS DATE) AS prd_start_dt,
+    CAST(LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) AS DATE) AS prd_end_dt
+FROM bronze.crm_prd_info
+%md
+#Normalization
+%sql
+SELECT
+  prd_id,
+  REPLACE(SUBSTRING(prd_key, 1, 5), ',', '_') AS cat_id,
+  SUBSTRING(prd_key, 7, length(prd_key)) AS prd_key,
+  prd_nm,
+  COALESCE(prd_cost, 0) AS prd_cost,
+  CASE UPPER(TRIM(prd_line))
+    WHEN 'M' THEN 'Mountain'
+    WHEN 'R' THEN 'Road'
+    WHEN 'S' THEN 'Other_sales'
+    WHEN 'T' THEN 'Touring'
+    ELSE 'n/a'
+  END AS prd_line,
+  CAST(prd_start_dt AS DATE) AS prd_start_dt,
+  CAST(LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) AS DATE) AS prd_end_dt
+FROM bronze.crm_prd_info
+%md
+#RENAMING THE COLUMNS
+%sql
+SELECT
+  prd_id AS Product_id,
+  REPLACE(SUBSTRING(prd_key, 1, 5), ',', '_') AS Category_id,
+  SUBSTRING(prd_key, 7, length(prd_key)) AS Product_key,
+  prd_nm AS Product_name,
+  COALESCE(prd_cost, 0) AS Product_cost,
+  CASE UPPER(TRIM(prd_line))
+    WHEN 'M' THEN 'Mountain'
+    WHEN 'R' THEN 'Road'
+    WHEN 'S' THEN 'Other_sales'
+    WHEN 'T' THEN 'Touring'
+    ELSE 'n/a'
+  END AS Product_line,
+  CAST(prd_start_dt AS DATE) AS Product_start_dt,
+  CAST(LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) AS DATE) AS Product_end_dt
+FROM bronze.crm_prd_info
+%md
+#WRITE INTO SILVER TABLE
+%sql
+INSERT INTO silver.crm_prd_info (
+  Product_id,
+  Category_id,
+  Product_key,
+  Product_name,
+  Product_cost,
+  Product_line,
+  Product_start_dt,
+  Product_end_dt,
+  dwh_create_date
+)
+SELECT
+  prd_id AS Product_id,
+  REPLACE(SUBSTRING(prd_key, 1, 5), ',', '_') AS Category_id,
+  SUBSTRING(prd_key, 7, length(prd_key)) AS Product_key,
+  prd_nm AS Product_name,
+  COALESCE(prd_cost, 0) AS Product_cost,
+  CASE UPPER(TRIM(prd_line))
+    WHEN 'M' THEN 'Mountain'
+    WHEN 'R' THEN 'Road'
+    WHEN 'S' THEN 'Other_sales'
+    WHEN 'T' THEN 'Touring'
+    ELSE 'n/a'
+  END AS Product_line,
+  CAST(prd_start_dt AS DATE) AS Product_start_dt,
+  CAST(LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) AS DATE) AS Product_end_dt,
+  Current_timestamp() AS dwh_create_date
+FROM bronze.crm_prd_info
