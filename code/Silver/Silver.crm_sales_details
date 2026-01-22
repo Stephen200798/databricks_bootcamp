@@ -1,0 +1,156 @@
+%md
+#INIT
+%sql
+DROP TABLE IF EXISTS silver.crm_sales_details
+%sql
+CREATE TABLE silver.crm_sales_details(
+  Sales_Order_Num VARCHAR(50),
+  Sales_Product_Key VARCHAR(50),
+  Sales_Customer_ID INT,
+  Sales_Order_Date DATE,
+  Sales_Ship_Date DATE,
+  Sales_Due_Date DATE,
+  Sales_Sales INT,
+  Sales_Quantity INT,
+  Sales_Price INT,
+  dwh_create_date TIMESTAMP
+)
+%md
+#READING FROM BRONZE
+%sql
+INSERT INTO silver.crm_sales_details(
+  Sales_Order_Num,
+  Sales_Product_Key,
+  Sales_Customer_ID,
+  Sales_Order_Date,
+  Sales_Ship_Date,
+  Sales_Due_Date,
+  Sales_Sales,
+  Sales_Quantity,
+  Sales_Price,
+  dwh_create_date
+)
+SELECT 
+  sls_ord_num,
+  sls_prd_key,
+  sls_cust_id,
+  DATE_FROM_UNIX_DATE(sls_order_dt),
+  DATE_FROM_UNIX_DATE(sls_ship_dt),
+  DATE_FROM_UNIX_DATE(sls_due_dt),
+  sls_sales,
+  sls_quantity,
+  sls_price,
+  current_timestamp()
+FROM bronze.crm_sales_details
+%md
+#DATA TRANSFORMATION
+%sql
+SELECT
+    sls_ord_num,
+    sls_prd_key,
+    sls_cust_id,
+    CASE
+        WHEN sls_order_dt = 0 OR length(sls_order_dt) != 8 THEN NULL
+        ELSE to_date(CAST(sls_order_dt AS STRING), 'yyyyMMdd')
+    END AS sls_order_dt,
+    CASE
+        WHEN sls_ship_dt = 0 OR length(sls_ship_dt) != 8 THEN NULL
+        ELSE to_date(CAST(sls_ship_dt AS STRING), 'yyyyMMdd')
+    END AS sls_ship_dt,
+    CASE
+        WHEN sls_due_dt = 0 OR length(sls_due_dt) != 8 THEN NULL
+        ELSE to_date(CAST(sls_due_dt AS STRING), 'yyyyMMdd')
+    END AS sls_due_dt,
+    CASE
+        WHEN sls_sales IS NULL
+          OR sls_sales <= 0
+          OR sls_sales != sls_quantity * abs(sls_price)
+        THEN sls_quantity * abs(sls_price)
+        ELSE sls_sales
+    END AS sls_sales,
+    sls_quantity,
+    CASE
+        WHEN sls_price IS NULL OR sls_price <= 0
+        THEN sls_price / NULLIF(sls_quantity, 0)
+        ELSE sls_price
+    END AS sls_price
+FROM bronze.crm_sales_details
+%md
+#RENAMING THE COLUMNS
+%sql
+SELECT
+    sls_ord_num AS Sales_Order_Num,
+    sls_prd_key AS Sales_Product_key,
+    sls_cust_id AS Sales_Customer_ID,
+    CASE
+        WHEN sls_order_dt = 0 OR length(sls_order_dt) != 8 THEN NULL
+        ELSE to_date(CAST(sls_order_dt AS STRING), 'yyyyMMdd')
+    END AS Sales_Order_Date,
+    CASE
+        WHEN sls_ship_dt = 0 OR length(sls_ship_dt) != 8 THEN NULL
+        ELSE to_date(CAST(sls_ship_dt AS STRING), 'yyyyMMdd')
+    END AS Sales_Ship_Date,
+    CASE
+        WHEN sls_due_dt = 0 OR length(sls_due_dt) != 8 THEN NULL
+        ELSE to_date(CAST(sls_due_dt AS STRING), 'yyyyMMdd')
+    END AS Sales_Due_Date,
+    CASE
+        WHEN sls_sales IS NULL
+          OR sls_sales <= 0
+          OR sls_sales != sls_quantity * abs(sls_price)
+        THEN sls_quantity * abs(sls_price)
+        ELSE sls_sales
+    END AS Sales_sales,
+    sls_quantity AS Sales_Quantity,
+    CASE
+        WHEN sls_price IS NULL OR sls_price <= 0
+        THEN sls_price / NULLIF(sls_quantity, 0)
+        ELSE sls_price
+    END AS Sales_Price
+FROM bronze.crm_sales_details
+%md
+#WRITE INTO SILVER TABLE
+%sql
+INSERT INTO silver.crm_sales_details(
+  Sales_Order_Num,
+  Sales_Product_Key,
+  Sales_Customer_ID,
+  Sales_Order_Date,
+  Sales_Ship_Date,
+  Sales_Due_Date,
+  Sales_Sales,
+  Sales_Quantity,
+  Sales_Price,
+  dwh_create_date
+  )
+SELECT
+    sls_ord_num AS Sales_Order_Num,
+    sls_prd_key AS Sales_Product_key,
+    sls_cust_id AS Sales_Customer_ID,
+    CASE
+        WHEN sls_order_dt = 0 OR length(sls_order_dt) != 8 THEN NULL
+        ELSE to_date(CAST(sls_order_dt AS STRING), 'yyyyMMdd')
+    END AS Sales_Order_Date,
+    CASE
+        WHEN sls_ship_dt = 0 OR length(sls_ship_dt) != 8 THEN NULL
+        ELSE to_date(CAST(sls_ship_dt AS STRING), 'yyyyMMdd')
+    END AS Sales_Ship_Date,
+    CASE
+        WHEN sls_due_dt = 0 OR length(sls_due_dt) != 8 THEN NULL
+        ELSE to_date(CAST(sls_due_dt AS STRING), 'yyyyMMdd')
+    END AS Sales_Due_Date,
+    CASE
+        WHEN sls_sales IS NULL
+          OR sls_sales <= 0
+          OR sls_sales != sls_quantity * abs(sls_price)
+        THEN sls_quantity * abs(sls_price)
+        ELSE sls_sales
+    END AS Sales_sales,
+    sls_quantity AS Sales_Quantity,
+    CASE
+        WHEN sls_price IS NULL OR sls_price <= 0
+        THEN sls_price / NULLIF(sls_quantity, 0)
+        ELSE sls_price
+    END AS Sales_Price,
+    current_timestamp() AS dwh_create_date
+FROM bronze.crm_sales_details 
