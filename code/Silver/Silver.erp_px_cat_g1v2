@@ -1,0 +1,26 @@
+%md
+#INIT
+%sql
+DROP TABLE IF EXISTS silver.erp_px_cat_g1v2
+%sql
+CREATE TABLE silver.erp_px_cat_g1v2 (
+  Customer_id VARCHAR(50),
+  Category VARCHAR(50),
+  Subcategory VARCHAR(50),
+  Maintenance VARCHAR(50)
+)
+%md
+#READING FROM BRONZE & WRITE INTO SILVER TABLE
+%sql
+INSERT INTO silver.erp_px_cat_g1v2 (
+  Customer_id,
+  Category,
+  Subcategory,
+  Maintenance
+)
+SELECT 
+  id,
+  cat,
+  subcat,
+  maintenance
+FROM bronze.erp_px_cat_g1v2
