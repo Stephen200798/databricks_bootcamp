@@ -1,5 +1,6 @@
 %md
 #INIT
+
 %sql
 DROP TABLE IF EXISTS silver.crm_prd_info
 %sql
@@ -17,27 +18,14 @@ CREATE TABLE silver.crm_prd_info (
 %md
 #READING FROM BRONZE
 %sql
-INSERT INTO silver.crm_prd_info (
-  Product_id,
-  Category_id,
-  Product_key,
-  Product_name,
-  Product_cost,
-  Product_line,
-  Product_start_dt,
-  Product_end_dt,
-  dwh_create_date
-)
-SELECT 
+SELECT
   prd_id,
-  NULL AS cat_id,
   prd_key,
   prd_nm,
   prd_cost,
   prd_line,
   prd_start_dt,
-  prd_end_dt,
-  current_timestamp()
+  prd_end_dt
 FROM bronze.crm_prd_info
 %md
 #DATA TRANSFORMATION
