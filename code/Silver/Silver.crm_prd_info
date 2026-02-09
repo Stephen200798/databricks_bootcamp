@@ -34,7 +34,7 @@ FROM bronze.crm_prd_info
 %sql
 SELECT 
     prd_id,
-    REPLACE(SUBSTRING(prd_key, 1, 5), ',', '_') AS cat_id,
+    REPLACE(SUBSTRING(prd_key, 1, 5), '-', '_') AS cat_id,
     SUBSTRING(prd_key, 7, length(prd_key)) AS prd_key,
     prd_nm,
     COALESCE(prd_cost, 0) AS prd_cost,
@@ -47,7 +47,7 @@ FROM bronze.crm_prd_info
 %sql
 SELECT
   prd_id,
-  REPLACE(SUBSTRING(prd_key, 1, 5), ',', '_') AS cat_id,
+  REPLACE(SUBSTRING(prd_key, 1, 5), '-', '_') AS cat_id,
   SUBSTRING(prd_key, 7, length(prd_key)) AS prd_key,
   prd_nm,
   COALESCE(prd_cost, 0) AS prd_cost,
@@ -66,7 +66,7 @@ FROM bronze.crm_prd_info
 %sql
 SELECT
   prd_id AS Product_id,
-  REPLACE(SUBSTRING(prd_key, 1, 5), ',', '_') AS Category_id,
+  REPLACE(SUBSTRING(prd_key, 1, 5), '-', '_') AS Category_id,
   SUBSTRING(prd_key, 7, length(prd_key)) AS Product_key,
   prd_nm AS Product_name,
   COALESCE(prd_cost, 0) AS Product_cost,
@@ -96,7 +96,7 @@ INSERT INTO silver.crm_prd_info (
 )
 SELECT
   prd_id AS Product_id,
-  REPLACE(SUBSTRING(prd_key, 1, 5), ',', '_') AS Category_id,
+  REPLACE(SUBSTRING(prd_key, 1, 5), '-', '_') AS Category_id,
   SUBSTRING(prd_key, 7, length(prd_key)) AS Product_key,
   prd_nm AS Product_name,
   COALESCE(prd_cost, 0) AS Product_cost,
