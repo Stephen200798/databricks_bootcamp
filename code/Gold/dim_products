@@ -1,0 +1,41 @@
+%md
+#INIT
+import pyspark.sql.functions as F
+from pyspark.sql.window import Window
+%md
+#BUSINESS TRANSFORMATION AND MODELING
+%sql
+SELECT
+  pr.Product_id,
+  pr.Product_key,
+  pr.Product_name,
+  pr.Category_id,
+  px.Category,
+  px.Subcategory,
+  pr.Product_cost,
+  pr.Product_line,
+  px.Maintenance,
+  pr.Product_start_dt
+FROM silver.crm_prd_info pr
+LEFT JOIN silver.erp_px_cat_g1v2 px
+ON pr.Category_id = px.Customer_id
+WHERE Product_end_dt IS NULL
+%md
+#WRITE INTO GOLD TABLE
+%sql
+CREATE VIEW gold.dim_Products AS 
+SELECT
+  pr.Product_id,
+  pr.Product_key,
+  pr.Product_name,
+  pr.Category_id,
+  px.Category,
+  px.Subcategory,
+  pr.Product_cost,
+  pr.Product_line,
+  px.Maintenance,
+  pr.Product_start_dt
+FROM silver.crm_prd_info pr
+LEFT JOIN silver.erp_px_cat_g1v2 px
+ON pr.Category_id = px.Customer_id
+WHERE Product_end_dt IS NULL
